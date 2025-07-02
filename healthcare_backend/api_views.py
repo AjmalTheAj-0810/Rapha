@@ -613,3 +613,434 @@ class AttachmentViewSet(viewsets.ModelViewSet):
         return Attachment.objects.filter(
             message__conversation__participants=self.request.user
         )
+
+
+# Additional API Views for Enhanced Frontend Integration
+
+from rest_framework.decorators import api_view, permission_classes
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def dashboard_stats(request):
+    """
+    Get dashboard statistics for the current user
+    """
+    user = request.user
+    today = timezone.now().date()
+    
+    if user.user_type == 'patient':
+        # Patient dashboard stats
+        upcoming_appointments = Appointment.objects.filter(
+            patient=user,
+            date__gte=today,
+            status__in=['scheduled', 'confirmed']
+        ).count()
+        
+        active_exercise_plans = ExercisePlan.objects.filter(
+            patient=user,
+            status='active'
+        ).count()
+        
+        completed_exercises_today = ExerciseProgress.objects.filter(
+            patient=user,
+            date_completed=today
+        ).count()
+        
+        total_progress_entries = ExerciseProgress.objects.filter(
+            patient=user
+        ).count()
+        
+        # Calculate exercise streak
+        streak = calculate_exercise_streak(user)
+        
+        stats = {
+            'upcoming_appointments': upcoming_appointments,
+            'active_exercise_plans': active_exercise_plans,
+            'completed_exercises_today': completed_exercises_today,
+            'total_progress_entries': total_progress_entries,
+            'exercise_streak': streak,
+            'user_type': 'patient'
+        }
+        
+    elif user.user_type == 'physiotherapist':
+        # Physiotherapist dashboard stats
+        today_appointments = Appointment.objects.filter(
+            physiotherapist=user,
+            date=today
+        ).count()
+        
+        total_patients = Appointment.objects.filter(
+            physiotherapist=user
+        ).values('patient').distinct().count()
+        
+        pending_appointments = Appointment.objects.filter(
+            physiotherapist=user,
+            status='scheduled'
+        ).count()
+        
+        active_exercise_plans = ExercisePlan.objects.filter(
+            created_by=user,
+            status='active'
+        ).count()
+        
+        stats = {
+            'today_appointments': today_appointments,
+            'total_patients': total_patients,
+            'pending_appointments': pending_appointments,
+            'active_exercise_plans': active_exercise_plans,
+            'user_type': 'physiotherapist'
+        }
+        
+    else:
+        # Admin dashboard stats
+        total_users = User.objects.count()
+        total_patients = User.objects.filter(user_type='patient').count()
+        total_physiotherapists = User.objects.filter(user_type='physiotherapist').count()
+        total_appointments = Appointment.objects.count()
+        total_exercises = Exercise.objects.count()
+        
+        stats = {
+            'total_users': total_users,
+            'total_patients': total_patients,
+            'total_physiotherapists': total_physiotherapists,
+            'total_appointments': total_appointments,
+            'total_exercises': total_exercises,
+            'user_type': 'admin'
+        }
+    
+    return Response(stats)
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def recent_activity(request):
+    """
+    Get recent activity for the current user
+    """
+    user = request.user
+    limit = int(request.GET.get('limit', 10))
+    
+    activities = []
+    
+    if user.user_type == 'patient':
+        # Recent appointments
+        recent_appointments = Appointment.objects.filter(
+            patient=user
+        ).order_by('-date', '-start_time')[:limit//2]
+        
+        for appointment in recent_appointments:
+            activities.append({
+                'type': 'appointment',
+                'title': f'Appointment with {appointment.physiotherapist.get_full_name()}',
+                'date': appointment.date,
+                'time': appointment.start_time,
+                'status': appointment.status,
+                'id': appointment.id
+            })
+        
+        # Recent exercise progress
+        recent_progress = ExerciseProgress.objects.filter(
+            patient=user
+        ).order_by('-date_completed')[:limit//2]
+        
+        for progress in recent_progress:
+            activities.append({
+                'type': 'exercise',
+                'title': f'Completed {progress.exercise_plan_item.exercise.name}',
+                'date': progress.date_completed,
+                'completion_status': progress.completion_status,
+                'difficulty_rating': progress.difficulty_rating,
+                'id': progress.id
+            })
+    
+    elif user.user_type == 'physiotherapist':
+        # Recent appointments
+        recent_appointments = Appointment.objects.filter(
+            physiotherapist=user
+        ).order_by('-date', '-start_time')[:limit]
+        
+        for appointment in recent_appointments:
+            activities.append({
+                'type': 'appointment',
+                'title': f'Appointment with {appointment.patient.get_full_name()}',
+                'date': appointment.date,
+                'time': appointment.start_time,
+                'status': appointment.status,
+                'id': appointment.id
+            })
+    
+    # Sort activities by date
+    activities.sort(key=lambda x: x['date'], reverse=True)
+    
+    return Response(activities[:limit])
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def available_time_slots(request):
+    """
+    Get available time slots for appointment booking
+    """
+    physiotherapist_id = request.GET.get('physiotherapist_id')
+    date_str = request.GET.get('date')
+    
+    if not physiotherapist_id or not date_str:
+        return Response(
+            {'error': 'physiotherapist_id and date are required'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        physiotherapist = User.objects.get(id=physiotherapist_id, user_type='physiotherapist')
+        appointment_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+    except (User.DoesNotExist, ValueError):
+        return Response(
+            {'error': 'Invalid physiotherapist or date'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # Get existing appointments for the date
+    existing_appointments = Appointment.objects.filter(
+        physiotherapist=physiotherapist,
+        date=appointment_date,
+        status__in=['scheduled', 'confirmed']
+    ).values_list('start_time', 'end_time')
+    
+    # Generate available time slots (9 AM to 5 PM, 1-hour slots)
+    available_slots = []
+    start_hour = 9
+    end_hour = 17
+    
+    for hour in range(start_hour, end_hour):
+        slot_start = f"{hour:02d}:00"
+        slot_end = f"{hour+1:02d}:00"
+        
+        # Check if slot conflicts with existing appointments
+        is_available = True
+        for existing_start, existing_end in existing_appointments:
+            if (slot_start >= str(existing_start) and slot_start < str(existing_end)) or \
+               (slot_end > str(existing_start) and slot_end <= str(existing_end)):
+                is_available = False
+                break
+        
+        if is_available:
+            available_slots.append({
+                'start_time': slot_start,
+                'end_time': slot_end,
+                'display': f"{slot_start} - {slot_end}"
+            })
+    
+    return Response(available_slots)
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def exercise_analytics(request):
+    """
+    Get exercise analytics for the current user
+    """
+    user = request.user
+    
+    if user.user_type != 'patient':
+        return Response(
+            {'error': 'Only patients can view exercise analytics'}, 
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    # Get date range
+    days = int(request.GET.get('days', 30))
+    end_date = timezone.now().date()
+    start_date = end_date - timedelta(days=days)
+    
+    # Get exercise progress data
+    progress_data = ExerciseProgress.objects.filter(
+        patient=user,
+        date_completed__gte=start_date,
+        date_completed__lte=end_date
+    ).order_by('date_completed')
+    
+    # Aggregate data by date
+    daily_stats = {}
+    for progress in progress_data:
+        date_str = progress.date_completed.strftime('%Y-%m-%d')
+        if date_str not in daily_stats:
+            daily_stats[date_str] = {
+                'date': date_str,
+                'exercises_completed': 0,
+                'total_duration': 0,
+                'avg_difficulty': 0,
+                'avg_pain_before': 0,
+                'avg_pain_after': 0,
+                'difficulties': [],
+                'pain_before': [],
+                'pain_after': []
+            }
+        
+        daily_stats[date_str]['exercises_completed'] += 1
+        daily_stats[date_str]['total_duration'] += progress.actual_duration
+        daily_stats[date_str]['difficulties'].append(progress.difficulty_rating)
+        daily_stats[date_str]['pain_before'].append(progress.pain_level_before)
+        daily_stats[date_str]['pain_after'].append(progress.pain_level_after)
+    
+    # Calculate averages
+    for date_str, stats in daily_stats.items():
+        if stats['difficulties']:
+            stats['avg_difficulty'] = sum(stats['difficulties']) / len(stats['difficulties'])
+            stats['avg_pain_before'] = sum(stats['pain_before']) / len(stats['pain_before'])
+            stats['avg_pain_after'] = sum(stats['pain_after']) / len(stats['pain_after'])
+        
+        # Remove raw lists
+        del stats['difficulties']
+        del stats['pain_before']
+        del stats['pain_after']
+    
+    # Convert to list and sort by date
+    analytics = list(daily_stats.values())
+    analytics.sort(key=lambda x: x['date'])
+    
+    # Calculate summary stats
+    total_exercises = sum(day['exercises_completed'] for day in analytics)
+    total_duration = sum(day['total_duration'] for day in analytics)
+    avg_exercises_per_day = total_exercises / max(len(analytics), 1)
+    
+    summary = {
+        'total_exercises': total_exercises,
+        'total_duration': total_duration,
+        'avg_exercises_per_day': round(avg_exercises_per_day, 1),
+        'days_with_activity': len(analytics),
+        'streak': calculate_exercise_streak(user)
+    }
+    
+    return Response({
+        'summary': summary,
+        'daily_data': analytics
+    })
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def search_global(request):
+    """
+    Global search across multiple models
+    """
+    query = request.GET.get('q', '').strip()
+    if not query:
+        return Response({'results': []})
+    
+    user = request.user
+    results = []
+    
+    # Search appointments
+    appointments = Appointment.objects.filter(
+        Q(patient=user) | Q(physiotherapist=user),
+        Q(notes__icontains=query) | Q(status__icontains=query)
+    )[:5]
+    
+    for appointment in appointments:
+        results.append({
+            'type': 'appointment',
+            'id': appointment.id,
+            'title': f'Appointment on {appointment.date}',
+            'description': f'With {appointment.physiotherapist.get_full_name() if user.user_type == "patient" else appointment.patient.get_full_name()}',
+            'url': f'/appointments/{appointment.id}/'
+        })
+    
+    # Search exercises
+    exercises = Exercise.objects.filter(
+        Q(name__icontains=query) | Q(description__icontains=query)
+    )[:5]
+    
+    for exercise in exercises:
+        results.append({
+            'type': 'exercise',
+            'id': exercise.id,
+            'title': exercise.name,
+            'description': exercise.description[:100] + '...' if len(exercise.description) > 100 else exercise.description,
+            'url': f'/exercises/{exercise.id}/'
+        })
+    
+    # Search users (for physiotherapists and admins)
+    if user.user_type in ['physiotherapist', 'admin']:
+        users = User.objects.filter(
+            Q(first_name__icontains=query) | Q(last_name__icontains=query) | Q(email__icontains=query)
+        ).exclude(id=user.id)[:5]
+        
+        for user_obj in users:
+            results.append({
+                'type': 'user',
+                'id': user_obj.id,
+                'title': user_obj.get_full_name(),
+                'description': f'{user_obj.user_type.title()} - {user_obj.email}',
+                'url': f'/users/{user_obj.id}/'
+            })
+    
+    return Response({'results': results})
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def quick_actions(request):
+    """
+    Handle quick actions from the frontend
+    """
+    action = request.data.get('action')
+    
+    if action == 'mark_all_notifications_read':
+        Notification.objects.filter(recipient=request.user, is_read=False).update(is_read=True)
+        return Response({'success': True, 'message': 'All notifications marked as read'})
+    
+    elif action == 'get_unread_count':
+        count = Notification.objects.filter(recipient=request.user, is_read=False).count()
+        return Response({'unread_count': count})
+    
+    elif action == 'cancel_appointment':
+        appointment_id = request.data.get('appointment_id')
+        reason = request.data.get('reason', '')
+        
+        try:
+            appointment = Appointment.objects.get(
+                Q(id=appointment_id) & (Q(patient=request.user) | Q(physiotherapist=request.user))
+            )
+            appointment.status = 'cancelled'
+            appointment.cancellation_reason = reason
+            appointment.save()
+            
+            return Response({'success': True, 'message': 'Appointment cancelled successfully'})
+        except Appointment.DoesNotExist:
+            return Response({'error': 'Appointment not found'}, status=status.HTTP_404_NOT_FOUND)
+    
+    return Response({'error': 'Invalid action'}, status=status.HTTP_400_BAD_REQUEST)
+
+def calculate_exercise_streak(user):
+    """
+    Calculate the current exercise streak for a user
+    """
+    today = timezone.now().date()
+    streak = 0
+    current_date = today
+    
+    while True:
+        has_exercise = ExerciseProgress.objects.filter(
+            patient=user,
+            date_completed=current_date
+        ).exists()
+        
+        if has_exercise:
+            streak += 1
+            current_date -= timedelta(days=1)
+        else:
+            break
+        
+        # Prevent infinite loop
+        if streak > 365:
+            break
+    
+    return streak
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def health_check(request):
+    """
+    Health check endpoint for monitoring
+    """
+    return Response({
+        'status': 'healthy',
+        'timestamp': timezone.now(),
+        'user': request.user.username,
+        'version': '1.0.0'
+    })

@@ -99,15 +99,11 @@ DATABASES = {
 }
 
 # Fallback to SQLite for development if PostgreSQL is not available
-if os.environ.get('USE_SQLITE', 'False').lower() == 'true':
+if os.environ.get('USE_SQLITE', 'True').lower() == 'true':
     DATABASES = {
         'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'healthcare_db1',
-        'USER': 'healthcare_user1',
-        'PASSWORD': 'healthcare_password',
-        'HOST': 'localhost',
-        'PORT': '5432',
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
 

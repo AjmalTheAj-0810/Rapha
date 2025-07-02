@@ -350,7 +350,8 @@ def create_exercise_plans(patient1, patient2, physio1, physio2):
         completed_repetitions=18,
         completed_sets=3,
         difficulty_rating=2,
-        pain_level=1,
+        pain_level_before=1,
+        pain_level_after=0,
         notes="Felt good, slight discomfort at end range"
     )
     

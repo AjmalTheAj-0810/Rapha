@@ -28,6 +28,9 @@ import Profile from './pages/Profile';
 import Appointments from './pages/Appointments';
 import Exercises from './pages/Exercises';
 import Users from './pages/Users';
+import Analytics from './pages/Analytics';
+import Settings from './pages/Settings';
+import Documentation from './pages/Documentation';
 
 const LoadingSpinner = () => (
   <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-400 via-cyan-400 to-blue-500">
@@ -119,6 +122,24 @@ const AppContent = () => {
             <Route path="/users" element={
               <PrivateRoute>
                 <Users />
+              </PrivateRoute>
+            } />
+
+            <Route path="/analytics" element={
+              <PrivateRoute>
+                <Analytics />
+              </PrivateRoute>
+            } />
+
+            <Route path="/settings" element={
+              <PrivateRoute>
+                <Settings />
+              </PrivateRoute>
+            } />
+
+            <Route path="/docs" element={
+              <PrivateRoute>
+                <Documentation />
               </PrivateRoute>
             } />
             

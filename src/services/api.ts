@@ -1,12 +1,10 @@
 // Enhanced API service for Healthcare application
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://your-production-api.com/api' 
-  : 'http://localhost:12000/api';
+import { config, getApiUrl, log } from '../config/environment';
 
 class ApiService {
   constructor() {
-    this.baseURL = API_BASE_URL;
-    this.token = localStorage.getItem('authToken');
+    this.baseURL = config.api.baseUrl;
+    this.token = localStorage.getItem(config.auth.tokenStorageKey);
     this.refreshToken = localStorage.getItem('refreshToken');
     this.isRefreshing = false;
     this.failedQueue = [];
@@ -15,7 +13,7 @@ class ApiService {
   // Set authentication tokens
   setToken(token, refreshToken = null) {
     this.token = token;
-    localStorage.setItem('authToken', token);
+    localStorage.setItem(config.auth.tokenStorageKey, token);
     
     if (refreshToken) {
       this.refreshToken = refreshToken;
@@ -27,7 +25,7 @@ class ApiService {
   removeToken() {
     this.token = null;
     this.refreshToken = null;
-    localStorage.removeItem('authToken');
+    localStorage.removeItem(config.auth.tokenStorageKey);
     localStorage.removeItem('refreshToken');
   }
 
@@ -748,6 +746,127 @@ class ApiService {
 
   async batchDelete(endpoint, ids) {
     return this.post(`${endpoint}/batch-delete/`, { ids });
+  }
+
+  // Additional enhanced methods
+  async getRecentActivity(limit = 10) {
+    return this.get('/dashboard/activity/', { limit });
+  }
+
+  async searchGlobal(query) {
+    return this.get('/search/', { q: query });
+  }
+
+  async quickAction(action, data = {}) {
+    return this.post('/actions/', { action, ...data });
+  }
+
+  async markAllNotificationsRead() {
+    return this.quickAction('mark_all_notifications_read');
+  }
+
+  async getUnreadNotificationCount() {
+    return this.quickAction('get_unread_count');
+  }
+
+  async cancelAppointmentQuick(appointmentId, reason = '') {
+    return this.quickAction('cancel_appointment', {
+      appointment_id: appointmentId,
+      reason: reason
+    });
+  }
+
+  // Enhanced appointment booking workflow
+  async bookAppointment(appointmentData) {
+    // First check if the time slot is still available
+    const availableSlots = await this.getAvailableTimeSlots(
+      appointmentData.physiotherapist,
+      appointmentData.date
+    );
+    
+    const isSlotAvailable = availableSlots.some(slot => 
+      slot.start_time === appointmentData.start_time
+    );
+    
+    if (!isSlotAvailable) {
+      throw new Error('Selected time slot is no longer available');
+    }
+    
+    return this.createAppointment(appointmentData);
+  }
+
+  // Enhanced exercise tracking
+  async logExerciseSession(exercisePlanItemId, sessionData) {
+    const progressData = {
+      exercise_plan_item: exercisePlanItemId,
+      date_completed: new Date().toISOString().split('T')[0],
+      ...sessionData
+    };
+    
+    return this.createExerciseProgress(progressData);
+  }
+
+  // Dashboard data aggregation
+  async getDashboardData() {
+    try {
+      const [stats, activity] = await Promise.all([
+        this.getDashboardStats(),
+        this.getRecentActivity(5)
+      ]);
+      
+      return {
+        stats,
+        activity,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Failed to load dashboard data:', error);
+      throw error;
+    }
+  }
+
+  // Enhanced search with caching
+  async searchWithCache(query, cacheTime = 30000) {
+    const cacheKey = `search_${query}`;
+    const cached = this.getFromCache(cacheKey);
+    
+    if (cached && Date.now() - cached.timestamp < cacheTime) {
+      return cached.data;
+    }
+    
+    const results = await this.searchGlobal(query);
+    this.setCache(cacheKey, {
+      data: results,
+      timestamp: Date.now()
+    });
+    
+    return results;
+  }
+
+  // Simple cache implementation
+  getFromCache(key) {
+    try {
+      const cached = localStorage.getItem(`api_cache_${key}`);
+      return cached ? JSON.parse(cached) : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  setCache(key, data) {
+    try {
+      localStorage.setItem(`api_cache_${key}`, JSON.stringify(data));
+    } catch (error) {
+      console.warn('Failed to cache data:', error);
+    }
+  }
+
+  clearCache() {
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('api_cache_')) {
+        localStorage.removeItem(key);
+      }
+    });
   }
 }
 

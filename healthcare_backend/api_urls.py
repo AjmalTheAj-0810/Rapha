@@ -40,6 +40,12 @@ from authentication.views import (
     RegisterView, LoginView, LogoutView
 )
 
+# Import additional API views
+from api_views import (
+    dashboard_stats, recent_activity, available_time_slots,
+    exercise_analytics, search_global, quick_actions, health_check
+)
+
 # Create router and register viewsets
 router = DefaultRouter()
 
@@ -81,6 +87,15 @@ urlpatterns = [
         path('logout/', LogoutView.as_view(), name='logout'),
         path('token/', obtain_auth_token, name='api_token_auth'),
     ])),
+    
+    # Additional Frontend Endpoints
+    path('dashboard/stats/', dashboard_stats, name='dashboard_stats'),
+    path('dashboard/activity/', recent_activity, name='recent_activity'),
+    path('appointments/available-slots/', available_time_slots, name='available_time_slots'),
+    path('analytics/exercises/', exercise_analytics, name='exercise_analytics'),
+    path('search/', search_global, name='search_global'),
+    path('actions/', quick_actions, name='quick_actions'),
+    path('health/', health_check, name='health_check'),
     
     # API Documentation (disabled for now)
     # path('docs/', include_docs_urls(title='Healthcare API Documentation')),
