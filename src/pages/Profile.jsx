@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   User, 
   Mail, 
@@ -19,16 +19,18 @@ import {
   Shield,
   Bell,
   Globe,
-  Lock
+  Lock,
+  Loader
 } from 'lucide-react';
 import Navbar from '../components/dashboard/Navbar';
 import { useAuth } from '../context/AuthContext';
+import apiService from '../services/api';
 
 const Profile = () => {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState('https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=1');
+  const [imagePreview, setImagePreview] = useState(user?.profile_picture || 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=1');
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -36,24 +38,26 @@ const Profile = () => {
   const [errors, setErrors] = useState({});
   const [successMessage, setSuccessMessage] = useState('');
   const [activeTab, setActiveTab] = useState('personal');
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const fileInputRef = useRef(null);
 
   const [formData, setFormData] = useState({
-    firstName: 'John',
-    lastName: 'Doe',
-    email: user?.email || 'john.doe@email.com',
-    phone: '+1 (555) 123-4567',
-    dateOfBirth: '1985-06-15',
+    firstName: user?.first_name || '',
+    lastName: user?.last_name || '',
+    email: user?.email || '',
+    phone: user?.phone_number || '',
+    dateOfBirth: user?.date_of_birth || '',
     gender: 'male',
-    address: '123 Main Street',
-    city: 'New York',
-    state: 'NY',
-    zipCode: '10001',
-    country: 'United States',
-    bio: 'Dedicated to my recovery journey and maintaining an active lifestyle.',
-    emergencyContactName: 'Jane Doe',
-    emergencyContactPhone: '+1 (555) 987-6543',
-    emergencyContactRelation: 'Spouse'
+    address: user?.address || '',
+    city: '',
+    state: '',
+    zipCode: '',
+    country: '',
+    bio: '',
+    emergencyContactName: '',
+    emergencyContactPhone: '',
+    emergencyContactRelation: ''
   });
 
   const [passwordData, setPasswordData] = useState({
@@ -72,6 +76,29 @@ const Profile = () => {
     timezone: 'America/New_York',
     theme: 'light'
   });
+
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        firstName: user.first_name || '',
+        lastName: user.last_name || '',
+        email: user.email || '',
+        phone: user.phone_number || '',
+        dateOfBirth: user.date_of_birth || '',
+        gender: 'male',
+        address: user.address || '',
+        city: '',
+        state: '',
+        zipCode: '',
+        country: '',
+        bio: '',
+        emergencyContactName: '',
+        emergencyContactPhone: '',
+        emergencyContactRelation: ''
+      });
+      setImagePreview(user.profile_picture || 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=1');
+    }
+  }, [user]);
 
   const handleImageUpload = (event) => {
     const file = event.target.files[0];
@@ -160,31 +187,58 @@ const Profile = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validateForm()) {
       return;
     }
 
-    // Simulate API call
-    setTimeout(() => {
+    setSaving(true);
+    try {
+      const updateData = {
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        email: formData.email,
+        phone_number: formData.phone,
+        date_of_birth: formData.dateOfBirth,
+        address: formData.address
+      };
+
+      const updatedUser = await apiService.updateProfile(updateData);
+      updateUser(updatedUser);
+      
       setIsEditing(false);
       setSuccessMessage('Profile updated successfully!');
       setTimeout(() => setSuccessMessage(''), 3000);
-    }, 1000);
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      setErrors({ general: 'Failed to update profile. Please try again.' });
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handlePasswordChange = () => {
+  const handlePasswordChange = async () => {
     if (!validatePassword()) {
       return;
     }
 
-    // Simulate API call
-    setTimeout(() => {
+    setSaving(true);
+    try {
+      await apiService.changePassword({
+        old_password: passwordData.currentPassword,
+        new_password: passwordData.newPassword
+      });
+      
       setShowPasswordChange(false);
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
       setSuccessMessage('Password changed successfully!');
       setTimeout(() => setSuccessMessage(''), 3000);
-    }, 1000);
+    } catch (error) {
+      console.error('Failed to change password:', error);
+      setErrors({ password: 'Failed to change password. Please check your current password.' });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleCancel = () => {

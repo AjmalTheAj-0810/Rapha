@@ -92,9 +92,12 @@ class ExercisePlanViewSet(viewsets.ModelViewSet):
         user = self.request.user
         queryset = ExercisePlan.objects.select_related(
             'patient', 'physiotherapist'
-        ).prefetch_related('items__exercise', 'progress_records')
+        ).prefetch_related('plan_items__exercise')
         
-        if user.user_type == 'patient':
+        # Admin users can see all exercise plans
+        if user.user_type == 'admin':
+            pass  # No filtering for admin users
+        elif user.user_type == 'patient':
             queryset = queryset.filter(patient=user)
         elif user.user_type == 'physiotherapist':
             queryset = queryset.filter(physiotherapist=user)

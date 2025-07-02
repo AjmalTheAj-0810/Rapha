@@ -16,7 +16,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   loading: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (credentials: { email?: string; username?: string; password: string }) => Promise<{ success: boolean; user?: User; error?: string }>;
   logout: () => void;
   register: (userData: any) => Promise<void>;
 }
@@ -66,10 +66,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkAuth();
   }, []);
 
-  const login = async (username: string, password: string): Promise<void> => {
+  const login = async (credentials: { email?: string; username?: string; password: string }): Promise<{ success: boolean; user?: User; error?: string }> => {
     try {
       setLoading(true);
-      const response = await apiService.login({ username, password });
+      
+      // Use email as username if provided
+      const loginData = {
+        username: credentials.email || credentials.username || '',
+        password: credentials.password
+      };
+      
+      const response = await apiService.login(loginData);
       
       if (response.token) {
         apiService.setToken(response.token);
@@ -82,10 +89,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Store user data in localStorage
         localStorage.setItem(config.auth.userStorageKey, JSON.stringify(userData));
         log.info('User logged in successfully');
+        
+        return { success: true, user: userData };
+      } else {
+        return { success: false, error: 'Invalid credentials' };
       }
-    } catch (error) {
+    } catch (error: any) {
       log.error('Login failed:', error);
-      throw error;
+      const errorMessage = error.response?.data?.detail || error.message || 'Login failed';
+      return { success: false, error: errorMessage };
     } finally {
       setLoading(false);
     }

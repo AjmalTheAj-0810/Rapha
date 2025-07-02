@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { AlertCircle, PartyPopper, BarChart3, Users, Calendar, Clock, Target, Activity, CalendarDays, UserCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { AlertCircle, PartyPopper, BarChart3, Users, Calendar, Clock, Target, Activity, CalendarDays, UserCheck, Loader } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/dashboard/Navbar';
 import StatCard from '../components/dashboard/StatCard';
@@ -15,39 +15,73 @@ import AIInsights from '../components/dashboard/AIInsights';
 import RecoveryTrendsChart from '../components/charts/RecoveryTrendsChart';
 import TreatmentPlanPieChart from '../components/charts/TreatmentPlanPieChart';
 import ExerciseManager from '../components/exercises/ExerciseManager';
+import { useAuth } from '../context/AuthContext';
+import { useAppointments, useUsers } from '../hooks/useDashboardData';
 
 const PhysioDashboard = () => {
+  const { user } = useAuth();
+  const { appointments, loading: appointmentsLoading } = useAppointments();
+  const { users, loading: usersLoading } = useUsers();
+  
   const [selectedPatient, setSelectedPatient] = useState({ 
     name: 'All Patients', 
     id: 'all',
     isOverview: true 
   });
 
+  const patients = users.filter(u => u.user_type === 'patient');
+  const loading = appointmentsLoading || usersLoading;
+
   const handlePatientSelect = (patient) => {
     setSelectedPatient(patient);
   };
 
-  // Mock data that changes based on selected patient
+  // Calculate dashboard data based on API data
   const getPatientData = () => {
     if (selectedPatient.id === 'all' || selectedPatient.isOverview) {
+      const today = new Date().toDateString();
+      const todayAppointments = appointments.filter(apt => 
+        new Date(apt.date).toDateString() === today
+      );
+      
+      const upcomingAppointments = appointments.filter(apt => 
+        new Date(apt.date) > new Date() && apt.status === 'scheduled'
+      ).sort((a, b) => new Date(a.date) - new Date(b.date));
+
       return {
-        activePatients: 12,
-        sessionsToday: 8,
-        nextAppointment: 'John Doe - 2:00 PM',
-        treatmentGoals: 15,
-        exerciseCompletion: 78,
-        streak: 6,
-        adherenceRate: 82
+        activePatients: patients.length,
+        sessionsToday: todayAppointments.length,
+        nextAppointment: upcomingAppointments.length > 0 ? 
+          `${upcomingAppointments[0].patient_name || 'Patient'} - ${upcomingAppointments[0].time || 'TBD'}` : 
+          'No upcoming appointments',
+        treatmentGoals: appointments.filter(apt => apt.status === 'completed').length,
+        exerciseCompletion: 78, // Would calculate from exercise progress data
+        streak: 6, // Would calculate from appointment history
+        adherenceRate: 82 // Would calculate from exercise completion data
       };
     } else {
+      const patientAppointments = appointments.filter(apt => 
+        apt.patient === selectedPatient.id
+      );
+      
+      const completedSessions = patientAppointments.filter(apt => 
+        apt.status === 'completed'
+      ).length;
+
+      const upcomingAppointments = patientAppointments.filter(apt => 
+        new Date(apt.date) > new Date() && apt.status === 'scheduled'
+      ).sort((a, b) => new Date(a.date) - new Date(b.date));
+
       return {
         activePatients: 1,
-        sessionsToday: selectedPatient.completedSessions || 2,
-        nextAppointment: selectedPatient.nextSession || 'Tomorrow - 10:00 AM',
-        treatmentGoals: selectedPatient.totalSessions || 3,
-        exerciseCompletion: selectedPatient.exerciseCompletion || 85,
-        streak: selectedPatient.streak || 7,
-        adherenceRate: selectedPatient.adherence || 88
+        sessionsToday: completedSessions,
+        nextAppointment: upcomingAppointments.length > 0 ? 
+          `${new Date(upcomingAppointments[0].date).toLocaleDateString()} - ${upcomingAppointments[0].time || 'TBD'}` : 
+          'No upcoming sessions',
+        treatmentGoals: patientAppointments.length,
+        exerciseCompletion: 85, // Would calculate from exercise progress
+        streak: 7, // Would calculate from exercise completion
+        adherenceRate: 88 // Would calculate from exercise data
       };
     }
   };
@@ -127,6 +161,22 @@ const PhysioDashboard = () => {
 
   const physioInsights = getPatientSpecificInsights();
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="p-6">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <Loader className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+              <p className="text-gray-600">Loading dashboard data...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -134,11 +184,13 @@ const PhysioDashboard = () => {
       <div className="p-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6">
           <div className="mb-4 lg:mb-0">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Physiotherapist Dashboard</h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              Welcome back, Dr. {user?.first_name || 'Physiotherapist'}!
+            </h1>
             <p className="text-gray-600">
               {selectedPatient.isOverview 
-                ? 'Monitor patient progress and manage treatments' 
-                : `Managing ${selectedPatient.name} - ${selectedPatient.condition}`
+                ? `Monitor ${patients.length} patients and manage treatments` 
+                : `Managing ${selectedPatient.first_name} ${selectedPatient.last_name}`
               }
             </p>
           </div>

@@ -868,6 +868,59 @@ class ApiService {
       }
     });
   }
+
+  // Profile Management
+  async updateProfile(data) {
+    return this.request('/auth/profile/', {
+      method: 'PATCH',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async changePassword(data) {
+    return this.request('/auth/change-password/', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  // Chat functionality (placeholder for future implementation)
+  async sendMessage(recipientId, message) {
+    return this.request('/chat/messages/', {
+      method: 'POST',
+      body: JSON.stringify({
+        recipient: recipientId,
+        message: message
+      })
+    });
+  }
+
+  async getMessages(conversationId) {
+    return this.request(`/chat/conversations/${conversationId}/messages/`);
+  }
+
+  // Notifications (placeholder for future implementation)
+  async getNotifications() {
+    return this.request('/notifications/');
+  }
+
+  async markNotificationAsRead(notificationId) {
+    return this.request(`/notifications/${notificationId}/mark-read/`, {
+      method: 'POST'
+    });
+  }
+
+  async markAllNotificationsAsRead() {
+    return this.request('/notifications/mark-all-read/', {
+      method: 'POST'
+    });
+  }
+
+  async deleteNotification(notificationId) {
+    return this.request(`/notifications/${notificationId}/`, {
+      method: 'DELETE'
+    });
+  }
 }
 
 // Create and export a singleton instance
