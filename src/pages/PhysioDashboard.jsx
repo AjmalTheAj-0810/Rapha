@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AlertCircle, PartyPopper, BarChart3, Users, Calendar, Clock, Target, Activity, CalendarDays, UserCheck } from 'lucide-react';
+import { AlertCircle, PartyPopper, BarChart3, Users, Calendar, Clock, Target, Activity, CalendarDays, UserCheck, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/dashboard/Navbar';
 import StatCard from '../components/dashboard/StatCard';
@@ -15,6 +15,15 @@ import AIInsights from '../components/dashboard/AIInsights';
 import RecoveryTrendsChart from '../components/charts/RecoveryTrendsChart';
 import TreatmentPlanPieChart from '../components/charts/TreatmentPlanPieChart';
 import ExerciseManager from '../components/exercises/ExerciseManager';
+import { 
+  useDashboardStats, 
+  useRecentActivity, 
+  useTodaysAppointments, 
+  useUsers,
+  useAppointmentAnalytics,
+  useExerciseAnalytics,
+  useCurrentUser
+} from '../hooks/useApi';
 
 const PhysioDashboard = () => {
   const [selectedPatient, setSelectedPatient] = useState({ 
@@ -22,32 +31,60 @@ const PhysioDashboard = () => {
     id: 'all',
     isOverview: true 
   });
+  const [refreshing, setRefreshing] = useState(false);
+
+  // API hooks for real-time data
+  const { data: dashboardStats, loading: statsLoading, error: statsError, refetch: refetchStats } = useDashboardStats();
+  const { data: recentActivity, loading: activityLoading } = useRecentActivity(10);
+  const { data: todaysAppointments, loading: appointmentsLoading } = useTodaysAppointments();
+  const { data: patients, loading: patientsLoading } = useUsers({ user_type: 'patient' });
+  const { data: appointmentAnalytics, loading: appointmentAnalyticsLoading } = useAppointmentAnalytics(30);
+  const { data: exerciseAnalytics, loading: exerciseAnalyticsLoading } = useExerciseAnalytics(30);
+  const { data: currentUser } = useCurrentUser();
+
+  const isLoading = statsLoading || activityLoading || appointmentsLoading || patientsLoading;
+  const hasError = statsError;
 
   const handlePatientSelect = (patient) => {
     setSelectedPatient(patient);
   };
 
-  // Mock data that changes based on selected patient
+  // Refresh all data
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refetchStats();
+    } catch (error) {
+      console.error('Failed to refresh data:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  // Get data based on selected patient or overview
   const getPatientData = () => {
     if (selectedPatient.id === 'all' || selectedPatient.isOverview) {
       return {
-        activePatients: 12,
-        sessionsToday: 8,
-        nextAppointment: 'John Doe - 2:00 PM',
-        treatmentGoals: 15,
-        exerciseCompletion: 78,
-        streak: 6,
-        adherenceRate: 82
+        activePatients: patients?.length || 0,
+        sessionsToday: todaysAppointments?.length || 0,
+        nextAppointment: todaysAppointments?.[0] ? 
+          `${todaysAppointments[0].patient_name} - ${todaysAppointments[0].start_time}` : 
+          'No appointments today',
+        treatmentGoals: dashboardStats?.total_treatment_plans || 0,
+        exerciseCompletion: Math.round(exerciseAnalytics?.avg_completion_rate || 0),
+        streak: dashboardStats?.avg_patient_streak || 0,
+        adherenceRate: Math.round(appointmentAnalytics?.attendance_rate || 0)
       };
     } else {
+      // Individual patient data
       return {
         activePatients: 1,
-        sessionsToday: selectedPatient.completedSessions || 2,
-        nextAppointment: selectedPatient.nextSession || 'Tomorrow - 10:00 AM',
-        treatmentGoals: selectedPatient.totalSessions || 3,
-        exerciseCompletion: selectedPatient.exerciseCompletion || 85,
-        streak: selectedPatient.streak || 7,
-        adherenceRate: selectedPatient.adherence || 88
+        sessionsToday: selectedPatient.completedSessions || 0,
+        nextAppointment: selectedPatient.nextSession || 'No upcoming sessions',
+        treatmentGoals: selectedPatient.totalSessions || 0,
+        exerciseCompletion: selectedPatient.exerciseCompletion || 0,
+        streak: selectedPatient.streak || 0,
+        adherenceRate: selectedPatient.adherence || 0
       };
     }
   };

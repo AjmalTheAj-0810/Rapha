@@ -43,7 +43,8 @@ from authentication.views import (
 # Import additional API views
 from api_views import (
     dashboard_stats, recent_activity, available_time_slots,
-    exercise_analytics, search_global, quick_actions, health_check
+    exercise_analytics, search_global, quick_actions, health_check,
+    pain_analytics, progress_analytics, unread_notification_count
 )
 
 # Create router and register viewsets
@@ -91,8 +92,11 @@ urlpatterns = [
     # Additional Frontend Endpoints
     path('dashboard/stats/', dashboard_stats, name='dashboard_stats'),
     path('dashboard/activity/', recent_activity, name='recent_activity'),
-    path('appointments/available-slots/', available_time_slots, name='available_time_slots'),
+    path('booking/available-slots/', available_time_slots, name='available_time_slots'),
     path('analytics/exercises/', exercise_analytics, name='exercise_analytics'),
+    path('analytics/pain/', pain_analytics, name='pain_analytics'),
+    path('analytics/progress/', progress_analytics, name='progress_analytics'),
+    path('notification-count/unread/', unread_notification_count, name='unread_notification_count'),
     path('search/', search_global, name='search_global'),
     path('actions/', quick_actions, name='quick_actions'),
     path('health/', health_check, name='health_check'),
