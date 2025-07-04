@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle, Lightbulb, Calendar, Flame, Clock, Smile, Activity, Users, CalendarDays } from 'lucide-react';
+import { CheckCircle, Lightbulb, Calendar, Flame, Clock, Smile, Activity, Users, CalendarDays, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/dashboard/Navbar';
 import StatCard from '../components/dashboard/StatCard';
@@ -12,8 +12,13 @@ import EnhancedRecentMessages from '../components/dashboard/EnhancedRecentMessag
 import AIInsights from '../components/dashboard/AIInsights';
 import RecoveryTrendsChart from '../components/charts/RecoveryTrendsChart';
 import PatientExerciseView from '../components/exercises/PatientExerciseView';
+import { useDashboardData } from '../hooks/useDashboardData';
+import { useAuth } from '../context/AuthContext';
 
 const PatientDashboard = () => {
+  const { user } = useAuth();
+  const { stats, appointments, exercises, exercisePlans, loading, error } = useDashboardData();
+
   const patientInsights = [
     {
       type: 'positive',
@@ -31,13 +36,44 @@ const PatientDashboard = () => {
     }
   ];
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="p-6">
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="p-6">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-center">
+              <AlertCircle className="h-5 w-5 text-red-600 mr-2" />
+              <span className="text-red-800">Error loading dashboard: {error}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       
       <div className="p-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Patient Dashboard</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            Welcome back, {user?.first_name || 'Patient'}!
+          </h1>
           <p className="text-gray-600">Track your recovery and manage your health journey</p>
         </div>
 
@@ -45,30 +81,33 @@ const PatientDashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard
             title="Sessions Completed"
-            value="40"
+            value={stats.sessionsCompleted.toString()}
             icon={<Calendar className="h-6 w-6 text-blue-600" />}
             subtitle="This month"
-            trend={12}
+            trend={stats.sessionsCompleted > 0 ? 12 : 0}
           />
           <StatCard
             title="Daily Streak"
-            value="74"
+            value={stats.dailyStreak.toString()}
             icon={<Flame className="h-6 w-6 text-orange-500" />}
             subtitle="Days in a row"
             trend={8}
           />
           <StatCard
             title="Next Session"
-            value="Tomorrow"
+            value={stats.nextSession ? "Scheduled" : "None"}
             icon={<Clock className="h-6 w-6 text-green-600" />}
-            subtitle="10:00 AM with Dr. Afnan"
+            subtitle={stats.nextSession ? 
+              `${new Date(stats.nextSession.date).toLocaleDateString()} at ${stats.nextSession.time || 'TBD'}` : 
+              "No upcoming sessions"
+            }
           />
           <StatCard
             title="Pain Level"
-            value="2/10"
+            value={`${stats.painLevel || 0}/10`}
             icon={<Smile className="h-6 w-6 text-green-600" />}
-            subtitle="Much improved"
-            trend={-40}
+            subtitle="Current level"
+            trend={stats.painLevel ? -20 : 0}
           />
         </div>
 

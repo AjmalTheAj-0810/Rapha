@@ -8,12 +8,15 @@ const RegisterForm = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    role: ''
+    role: '',
+    firstName: '',
+    lastName: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [showValidation, setShowValidation] = useState(false);
-  const { login } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const { register, login } = useAuth();
   const navigate = useNavigate();
 
   // Password validation function
@@ -66,7 +69,7 @@ const RegisterForm = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!validateForm()) {
@@ -74,11 +77,42 @@ const RegisterForm = () => {
       return;
     }
     
-    // Set user data in context for the personal info form
-    login({ email: formData.email, role: formData.role });
+    setLoading(true);
     
-    // Navigate to personal information form
-    navigate('/personal-info');
+    try {
+      const userData = {
+        username: formData.email,
+        email: formData.email,
+        password: formData.password,
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        user_type: formData.role
+      };
+      
+      await register(userData);
+      
+      // Auto-login after successful registration
+      const loginResult = await login({
+        email: formData.email,
+        password: formData.password
+      });
+      
+      if (loginResult.success) {
+        // Navigate based on user type
+        if (formData.role === 'patient') {
+          navigate('/patient-dashboard');
+        } else if (formData.role === 'physiotherapist') {
+          navigate('/physio-dashboard');
+        } else {
+          navigate('/patient-dashboard');
+        }
+      }
+    } catch (error) {
+      console.error('Registration failed:', error);
+      setErrors({ submit: error.message || 'Registration failed. Please try again.' });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (e) => {
@@ -112,6 +146,33 @@ const RegisterForm = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-white mb-2">First Name</label>
+                <input
+                  type="text"
+                  name="firstName"
+                  value={formData.firstName}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="First name"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-white mb-2">Last Name</label>
+                <input
+                  type="text"
+                  name="lastName"
+                  value={formData.lastName}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Last name"
+                  required
+                />
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-white mb-2">Email</label>
               <div className="relative">
@@ -235,11 +296,18 @@ const RegisterForm = () => {
               {errors.role && <p className="mt-1 text-sm text-red-200">{errors.role}</p>}
             </div>
 
+            {errors.submit && (
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl">
+                {errors.submit}
+              </div>
+            )}
+
              <button
               type="submit"
-              className="w-full bg-black text-white py-3 px-4 rounded-xl font-semibold hover:bg-gray-800 transition-colors duration-200"
+              disabled={loading}
+              className="w-full bg-black text-white py-3 px-4 rounded-xl font-semibold hover:bg-gray-800 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Register
+              {loading ? 'Creating Account...' : 'Register'}
             </button>
 
             <div className="space-y-3">
