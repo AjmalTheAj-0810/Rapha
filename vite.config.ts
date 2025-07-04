@@ -9,7 +9,7 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0',
-    port: 12001,
+    port: 12002,
     cors: true,
     headers: {
       'X-Frame-Options': 'ALLOWALL',
@@ -17,7 +17,7 @@ export default defineConfig({
   },
   preview: {
     host: '0.0.0.0',
-    port: 12001,
+    port: 12002,
   },
   define: {
     // Ensure environment variables are available
