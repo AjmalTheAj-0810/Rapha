@@ -175,8 +175,9 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://localhost:12000",
     "http://localhost:12001",
-    "https://work-1-ikdqpcpeecfgaxgz.prod-runtime.all-hands.dev",
-    "https://work-2-ikdqpcpeecfgaxgz.prod-runtime.all-hands.dev",
+    "http://localhost:12002",
+    "https://work-1-rvjdeqdhvrnxhklq.prod-runtime.all-hands.dev",
+    "https://work-2-rvjdeqdhvrnxhklq.prod-runtime.all-hands.dev",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
