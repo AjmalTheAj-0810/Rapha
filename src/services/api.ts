@@ -670,7 +670,7 @@ class ApiService {
   }
 
   async getDashboardStats() {
-    return this.get('/analytics/dashboard/');
+    return this.get('/dashboard/stats/');
   }
 
   // Notifications
