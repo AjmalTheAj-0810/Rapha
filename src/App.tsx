@@ -13,6 +13,7 @@ import PersonalInformation from './pages/PersonalInformation';
 // Dashboard Pages
 import PatientDashboard from './pages/PatientDashboard';
 import PhysioDashboard from './pages/PhysioDashboard';
+import EnhancedPatientDashboard from './pages/EnhancedPatientDashboard';
 
 // Chat Pages
 import PatientChat from './pages/PatientChat';
@@ -20,6 +21,7 @@ import PhysioChat from './pages/PhysioChat';
 
 // Booking Pages
 import Booking from './pages/Booking';
+import EnhancedBooking from './pages/EnhancedBooking';
 import PhysioBookings from './pages/PhysioBookings';
 
 // Other Pages
@@ -29,8 +31,10 @@ import Appointments from './pages/Appointments';
 import Exercises from './pages/Exercises';
 import Users from './pages/Users';
 import Analytics from './pages/Analytics';
+import EnhancedAnalytics from './pages/EnhancedAnalytics';
 import Settings from './pages/Settings';
 import Documentation from './pages/Documentation';
+import ApiIntegrationTest from './components/testing/ApiIntegrationTest';
 
 const LoadingSpinner = () => (
   <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-400 via-cyan-400 to-blue-500">
@@ -61,6 +65,12 @@ const AppContent = () => {
             {/* Protected Routes */}
             <Route path="/patient-dashboard" element={
               <PrivateRoute>
+                <EnhancedPatientDashboard />
+              </PrivateRoute>
+            } />
+            
+            <Route path="/patient-dashboard-classic" element={
+              <PrivateRoute>
                 <PatientDashboard />
               </PrivateRoute>
             } />
@@ -84,6 +94,12 @@ const AppContent = () => {
             } />
             
             <Route path="/booking" element={
+              <PrivateRoute>
+                <EnhancedBooking />
+              </PrivateRoute>
+            } />
+            
+            <Route path="/booking-classic" element={
               <PrivateRoute>
                 <Booking />
               </PrivateRoute>
@@ -126,6 +142,12 @@ const AppContent = () => {
             } />
 
             <Route path="/analytics" element={
+              <PrivateRoute>
+                <EnhancedAnalytics />
+              </PrivateRoute>
+            } />
+            
+            <Route path="/analytics-classic" element={
               <PrivateRoute>
                 <Analytics />
               </PrivateRoute>
