@@ -16,7 +16,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   loading: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (credentials: any) => Promise<any>;
   logout: () => void;
   register: (userData: any) => Promise<void>;
 }
@@ -66,23 +66,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkAuth();
   }, []);
 
-  const login = async (username: string, password: string): Promise<void> => {
+  const login = async (credentials: any): Promise<any> => {
     try {
       setLoading(true);
-      const response = await apiService.login({ username, password });
+      const response = await apiService.login(credentials);
       
       if (response.token) {
         apiService.setToken(response.token);
         
-        // Get user data after successful login
-        const userData = await apiService.getCurrentUser();
-        setUser(userData);
-        setIsAuthenticated(true);
-        
-        // Store user data in localStorage
-        localStorage.setItem(config.auth.userStorageKey, JSON.stringify(userData));
-        log.info('User logged in successfully');
+        // If user data is already in the response, use it
+        if (response.user) {
+          setUser(response.user);
+          setIsAuthenticated(true);
+          localStorage.setItem(config.auth.userStorageKey, JSON.stringify(response.user));
+          log.info('User logged in successfully');
+          return response;
+        } else {
+          // Otherwise, get user data after successful login
+          try {
+            const userData = await apiService.getCurrentUser();
+            setUser(userData);
+            setIsAuthenticated(true);
+            localStorage.setItem(config.auth.userStorageKey, JSON.stringify(userData));
+            log.info('User logged in successfully');
+            return { ...response, user: userData };
+          } catch (userError) {
+            log.error('Failed to get user data:', userError);
+            return response;
+          }
+        }
       }
+      return response;
     } catch (error) {
       log.error('Login failed:', error);
       throw error;

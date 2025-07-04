@@ -18,13 +18,18 @@ const LoginForm = () => {
     
     try {
       const credentials = {
-        email: formData.email,
+        username: formData.email, // Send email as username
         password: formData.password,
+        user_type: formData.role // Include the role
       };
+      
+      console.log('Attempting login with:', credentials);
       
       const result = await login(credentials);
       
-      if (result.success) {
+      console.log('Login result:', result);
+      
+      if (result && result.token) {
         console.log('Login successful:', result.user);
         // Navigate based on user type from API response
         if (result.user.user_type === 'patient') {
@@ -35,8 +40,8 @@ const LoginForm = () => {
           navigate('/patient-dashboard'); // Default fallback
         }
       } else {
-        console.error('Login failed:', result.error);
-        alert('Login failed: ' + result.error);
+        console.error('Login failed:', result?.error);
+        alert('Login failed: ' + (result?.error || 'Unknown error'));
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -66,15 +71,15 @@ const LoginForm = () => {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-white mb-2">Email</label>
+              <label className="block text-sm font-medium text-white mb-2">Username or Email</label>
               <div className="relative">
                 <input
-                  type="email"
+                  type="text"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
                   className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Enter your email"
+                  placeholder="Enter your username or email"
                   required
                 />
                 <Mail className="absolute right-3 top-3 h-5 w-5 text-gray-400" />
