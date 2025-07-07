@@ -1,29 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart3, TrendingUp, Users, Calendar, Activity, Clock } from 'lucide-react';
-import Layout from '../components/layout/Layout';
+import Layout from '../components/layout/Layout.jsx';
 import StatCard from '../components/dashboard/StatCard';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
-import apiService from '../services/api';
-import { config, log } from '../config/environment';
+import apiService from '../services/api.js';
+import { config, log } from '../config/environment.js';
 
-interface AnalyticsData {
-  patientProgress: any[];
-  appointmentStats: any[];
-  exerciseCompletion: any[];
-  monthlyTrends: any[];
-  summary: {
-    totalPatients: number;
-    totalAppointments: number;
-    avgCompletionRate: number;
-    totalExerciseHours: number;
-  };
-}
-
-const Analytics: React.FC = () => {
-  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
+const Analytics = () => {
+  const [analyticsData, setAnalyticsData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('30'); // days
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchAnalyticsData();
@@ -41,7 +28,7 @@ const Analytics: React.FC = () => {
       ]);
 
       // Mock additional analytics data for demonstration
-      const mockData: AnalyticsData = {
+      const mockData = {
         patientProgress: [
           { name: 'Week 1', completed: 85, target: 100 },
           { name: 'Week 2', completed: 92, target: 100 },

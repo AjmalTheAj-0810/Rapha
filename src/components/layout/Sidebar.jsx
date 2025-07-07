@@ -15,26 +15,15 @@ import {
   BarChart3,
   BookOpen
 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
-import { config } from '../../config/environment';
+import { useAuth } from '../../context/AuthContext.jsx';
+import { config } from '../../config/environment.js';
 
-interface SidebarProps {
-  userType: 'patient' | 'physiotherapist' | 'admin';
-}
-
-interface NavItem {
-  name: string;
-  href: string;
-  icon: React.ComponentType<any>;
-  enabled: boolean;
-}
-
-const Sidebar: React.FC<SidebarProps> = ({ userType }) => {
+const Sidebar = ({ userType }) => {
   const location = useLocation();
   const { logout } = useAuth();
 
-  const getNavigationItems = (): NavItem[] => {
-    const baseItems: NavItem[] = [
+  const getNavigationItems = () => {
+    const baseItems = [
       {
         name: 'Dashboard',
         href: userType === 'patient' ? '/patient-dashboard' : '/physio-dashboard',
@@ -136,7 +125,7 @@ const Sidebar: React.FC<SidebarProps> = ({ userType }) => {
 
   const navigationItems = getNavigationItems();
 
-  const isActive = (href: string) => {
+  const isActive = (href) => {
     return location.pathname === href;
   };
 

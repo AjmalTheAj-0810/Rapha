@@ -3,69 +3,24 @@
  * Centralized configuration management for the healthcare application
  */
 
-export interface AppConfig {
-  api: {
-    baseUrl: string;
-    timeout: number;
-  };
-  app: {
-    name: string;
-    version: string;
-    description: string;
-  };
-  features: {
-    analytics: boolean;
-    chat: boolean;
-    notifications: boolean;
-    exerciseTracking: boolean;
-  };
-  development: {
-    debugMode: boolean;
-    logLevel: string;
-  };
-  urls: {
-    frontend: string;
-    backend: string;
-  };
-  auth: {
-    tokenStorageKey: string;
-    userStorageKey: string;
-    sessionTimeout: number;
-  };
-  upload: {
-    maxFileSize: number;
-    allowedFileTypes: string[];
-  };
-  pagination: {
-    defaultPageSize: number;
-    maxPageSize: number;
-  };
-  ui: {
-    chartAnimationDuration: number;
-    analyticsRefreshInterval: number;
-    notificationTimeout: number;
-    maxNotifications: number;
-  };
-}
-
-const getEnvVar = (key: string, defaultValue: string = ''): string => {
+const getEnvVar = (key, defaultValue = '') => {
   return import.meta.env[key] || defaultValue;
 };
 
-const getEnvBool = (key: string, defaultValue: boolean = false): boolean => {
+const getEnvBool = (key, defaultValue = false) => {
   const value = import.meta.env[key];
   if (value === undefined) return defaultValue;
   return value === 'true' || value === '1';
 };
 
-const getEnvNumber = (key: string, defaultValue: number = 0): number => {
+const getEnvNumber = (key, defaultValue = 0) => {
   const value = import.meta.env[key];
   if (value === undefined) return defaultValue;
   const parsed = parseInt(value, 10);
   return isNaN(parsed) ? defaultValue : parsed;
 };
 
-export const config: AppConfig = {
+export const config = {
   api: {
     baseUrl: getEnvVar('VITE_API_BASE_URL', 'http://localhost:12000/api'),
     timeout: getEnvNumber('VITE_API_TIMEOUT', 10000),
@@ -115,7 +70,7 @@ export const isDevelopment = config.development.debugMode;
 export const isProduction = !isDevelopment;
 
 // API utilities
-export const getApiUrl = (endpoint: string): string => {
+export const getApiUrl = (endpoint) => {
   const baseUrl = config.api.baseUrl.endsWith('/') 
     ? config.api.baseUrl.slice(0, -1) 
     : config.api.baseUrl;
@@ -125,20 +80,20 @@ export const getApiUrl = (endpoint: string): string => {
 
 // Logging utility
 export const log = {
-  debug: (...args: any[]) => {
+  debug: (...args) => {
     if (config.development.debugMode && config.development.logLevel === 'debug') {
       console.log('[DEBUG]', ...args);
     }
   },
-  info: (...args: any[]) => {
+  info: (...args) => {
     if (config.development.debugMode) {
       console.info('[INFO]', ...args);
     }
   },
-  warn: (...args: any[]) => {
+  warn: (...args) => {
     console.warn('[WARN]', ...args);
   },
-  error: (...args: any[]) => {
+  error: (...args) => {
     console.error('[ERROR]', ...args);
   },
 };

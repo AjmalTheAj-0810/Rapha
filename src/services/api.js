@@ -1,5 +1,5 @@
 // Enhanced API service for Healthcare application
-import { config, getApiUrl, log } from '../config/environment';
+import { config, getApiUrl, log } from '../config/environment.js';
 
 class ApiService {
   constructor() {
