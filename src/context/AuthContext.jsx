@@ -1,33 +1,10 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import apiService from '../services/api';
-import { config, log } from '../config/environment';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import apiService from '../services/api.js';
+import { config, log } from '../config/environment.js';
 
-interface User {
-  id: number;
-  username: string;
-  email: string;
-  first_name: string;
-  last_name: string;
-  user_type: 'patient' | 'physiotherapist' | 'admin';
-  is_active: boolean;
-}
+const AuthContext = createContext(undefined);
 
-interface AuthContextType {
-  user: User | null;
-  isAuthenticated: boolean;
-  loading: boolean;
-  login: (username: string, password: string) => Promise<void>;
-  logout: () => void;
-  register: (userData: any) => Promise<void>;
-}
-
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const useAuth = (): AuthContextType => {
+export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
@@ -35,8 +12,8 @@ export const useAuth = (): AuthContextType => {
   return context;
 };
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -66,7 +43,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkAuth();
   }, []);
 
-  const login = async (username: string, password: string): Promise<void> => {
+  const login = async (username, password) => {
     try {
       setLoading(true);
       const response = await apiService.login({ username, password });
@@ -91,7 +68,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const register = async (userData: any): Promise<void> => {
+  const register = async (userData) => {
     try {
       setLoading(true);
       await apiService.register(userData);
@@ -104,7 +81,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = (): void => {
+  const logout = () => {
     try {
       apiService.removeToken();
       localStorage.removeItem(config.auth.tokenStorageKey);
@@ -117,7 +94,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const value: AuthContextType = {
+  const value = {
     user,
     isAuthenticated,
     loading,

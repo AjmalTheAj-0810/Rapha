@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import PrivateRoute from './routes/PrivateRoute';
 import RoleBasedRedirect from './routes/RoleBasedRedirect';
 
@@ -30,11 +30,11 @@ import Profile from './pages/Profile';
 import Appointments from './pages/Appointments';
 import Exercises from './pages/Exercises';
 import Users from './pages/Users';
-import Analytics from './pages/Analytics';
-import EnhancedAnalytics from './pages/EnhancedAnalytics';
-import Settings from './pages/Settings';
-import Documentation from './pages/Documentation';
-import ApiIntegrationTest from './components/testing/ApiIntegrationTest';
+import Analytics from './pages/Analytics.jsx';
+import EnhancedAnalytics from './pages/EnhancedAnalytics.jsx';
+import Settings from './pages/Settings.jsx';
+import Documentation from './pages/Documentation.jsx';
+import ApiIntegrationTest from './components/testing/ApiIntegrationTest.jsx';
 
 const LoadingSpinner = () => (
   <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-400 via-cyan-400 to-blue-500">

@@ -1,17 +1,10 @@
-import React, { ReactNode } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import React from 'react';
+import { useAuth } from '../../context/AuthContext.jsx';
 import Navbar from '../dashboard/Navbar';
-import Sidebar from './Sidebar';
-import { config } from '../../config/environment';
+import Sidebar from './Sidebar.jsx';
+import { config } from '../../config/environment.js';
 
-interface LayoutProps {
-  children: ReactNode;
-  title?: string;
-  showSidebar?: boolean;
-  className?: string;
-}
-
-const Layout: React.FC<LayoutProps> = ({ 
+const Layout = ({ 
   children, 
   title = config.app.name,
   showSidebar = true,

@@ -1,31 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
-import apiService from '../services/api';
-import { log } from '../config/environment';
-
-interface ApiState<T> {
-  data: T | null;
-  loading: boolean;
-  error: string | null;
-  refetch: () => Promise<void>;
-}
-
-interface ApiOptions {
-  immediate?: boolean;
-  dependencies?: any[];
-  onSuccess?: (data: any) => void;
-  onError?: (error: any) => void;
-}
+import apiService from '../services/api.js';
+import { log } from '../config/environment.js';
 
 // Generic hook for API calls
-export function useApi<T>(
-  apiCall: () => Promise<T>,
-  options: ApiOptions = {}
-): ApiState<T> {
+export function useApi(apiCall, options = {}) {
   const { immediate = true, dependencies = [], onSuccess, onError } = options;
   
-  const [data, setData] = useState<T | null>(null);
+  const [data, setData] = useState(null);
   const [loading, setLoading] = useState(immediate);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -40,7 +23,7 @@ export function useApi<T>(
       }
       
       log('API call successful', { result });
-    } catch (err: any) {
+    } catch (err) {
       const errorMessage = err.message || 'An error occurred';
       setError(errorMessage);
       
@@ -76,7 +59,7 @@ export function useDashboardStats() {
 }
 
 // Hook for recent activity
-export function useRecentActivity(limit: number = 10) {
+export function useRecentActivity(limit = 10) {
   return useApi(() => apiService.getRecentActivity(limit), {
     dependencies: [limit],
   });
@@ -90,7 +73,7 @@ export function useCurrentUser() {
 }
 
 // Hook for appointments
-export function useAppointments(params: any = {}) {
+export function useAppointments(params = {}) {
   return useApi(() => apiService.getAppointments(params), {
     dependencies: [JSON.stringify(params)],
   });
@@ -111,14 +94,14 @@ export function useTodaysAppointments() {
 }
 
 // Hook for exercises
-export function useExercises(params: any = {}) {
+export function useExercises(params = {}) {
   return useApi(() => apiService.getExercises(params), {
     dependencies: [JSON.stringify(params)],
   });
 }
 
 // Hook for exercise plans
-export function useExercisePlans(params: any = {}) {
+export function useExercisePlans(params = {}) {
   return useApi(() => apiService.getExercisePlans(params), {
     dependencies: [JSON.stringify(params)],
   });
@@ -132,21 +115,21 @@ export function useMyExercisePlans() {
 }
 
 // Hook for exercise progress
-export function useExerciseProgress(params: any = {}) {
+export function useExerciseProgress(params = {}) {
   return useApi(() => apiService.getExerciseProgress(params), {
     dependencies: [JSON.stringify(params)],
   });
 }
 
 // Hook for notifications
-export function useNotifications(params: any = {}) {
+export function useNotifications(params = {}) {
   return useApi(() => apiService.getNotifications(params), {
     dependencies: [JSON.stringify(params)],
   });
 }
 
 // Hook for users (for physiotherapists)
-export function useUsers(params: any = {}) {
+export function useUsers(params = {}) {
   return useApi(() => apiService.getUsers(params), {
     dependencies: [JSON.stringify(params)],
   });
@@ -160,21 +143,21 @@ export function usePhysiotherapists() {
 }
 
 // Hook for exercise analytics
-export function useExerciseAnalytics(timeRange: number = 30) {
+export function useExerciseAnalytics(timeRange = 30) {
   return useApi(() => apiService.getExerciseAnalytics({ days: timeRange }), {
     dependencies: [timeRange],
   });
 }
 
 // Hook for appointment analytics
-export function useAppointmentAnalytics(timeRange: number = 30) {
+export function useAppointmentAnalytics(timeRange = 30) {
   return useApi(() => apiService.getAppointmentAnalytics({ days: timeRange }), {
     dependencies: [timeRange],
   });
 }
 
 // Hook for patient progress report
-export function usePatientProgressReport(patientId: string, params: any = {}) {
+export function usePatientProgressReport(patientId, params = {}) {
   return useApi(() => apiService.getPatientProgressReport(patientId, params), {
     dependencies: [patientId, JSON.stringify(params)],
     immediate: !!patientId,
@@ -182,7 +165,7 @@ export function usePatientProgressReport(patientId: string, params: any = {}) {
 }
 
 // Hook for global search
-export function useGlobalSearch(query: string) {
+export function useGlobalSearch(query) {
   return useApi(() => apiService.searchGlobal(query), {
     dependencies: [query],
     immediate: !!query && query.length > 2,
@@ -197,7 +180,7 @@ export function useConversations() {
 }
 
 // Hook for messages in a conversation
-export function useMessages(conversationId: string) {
+export function useMessages(conversationId) {
   return useApi(() => apiService.getMessages(conversationId), {
     dependencies: [conversationId],
     immediate: !!conversationId,
@@ -212,7 +195,7 @@ export function useExerciseCategories() {
 }
 
 // Hook for available time slots
-export function useAvailableTimeSlots(physiotherapistId: string, date: string) {
+export function useAvailableTimeSlots(physiotherapistId, date) {
   return useApi(() => apiService.getAvailableTimeSlots(physiotherapistId, date), {
     dependencies: [physiotherapistId, date],
     immediate: !!(physiotherapistId && date),
@@ -234,7 +217,7 @@ export function useExerciseStreaks() {
 }
 
 // Hook for exercise progress stats
-export function useExerciseProgressStats(planId?: string) {
+export function useExerciseProgressStats(planId) {
   return useApi(() => apiService.getExerciseProgressStats(planId), {
     dependencies: [planId],
   });
@@ -248,7 +231,7 @@ export function useTodaysExercises() {
 }
 
 // Hook for weekly exercise schedule
-export function useWeeklyExerciseSchedule(planId: string) {
+export function useWeeklyExerciseSchedule(planId) {
   return useApi(() => apiService.getWeeklyExerciseSchedule(planId), {
     dependencies: [planId],
     immediate: !!planId,
@@ -256,13 +239,11 @@ export function useWeeklyExerciseSchedule(planId: string) {
 }
 
 // Mutation hook for API calls that modify data
-export function useApiMutation<T, P>(
-  apiCall: (params: P) => Promise<T>
-) {
+export function useApiMutation(apiCall) {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(null);
 
-  const mutate = useCallback(async (params: P): Promise<T | null> => {
+  const mutate = useCallback(async (params) => {
     try {
       setLoading(true);
       setError(null);
@@ -270,7 +251,7 @@ export function useApiMutation<T, P>(
       const result = await apiCall(params);
       log('API mutation successful', { result });
       return result;
-    } catch (err: any) {
+    } catch (err) {
       const errorMessage = err.message || 'An error occurred';
       setError(errorMessage);
       log('API mutation failed', { error: err });
@@ -289,41 +270,41 @@ export function useApiMutation<T, P>(
 
 // Specific mutation hooks
 export function useCreateAppointment() {
-  return useApiMutation((data: any) => apiService.createAppointment(data));
+  return useApiMutation((data) => apiService.createAppointment(data));
 }
 
 export function useUpdateAppointment() {
-  return useApiMutation(({ id, data }: { id: string; data: any }) => 
+  return useApiMutation(({ id, data }) => 
     apiService.updateAppointment(id, data)
   );
 }
 
 export function useCancelAppointment() {
-  return useApiMutation(({ id, reason }: { id: string; reason?: string }) => 
+  return useApiMutation(({ id, reason }) => 
     apiService.cancelAppointment(id, reason)
   );
 }
 
 export function useCreateExerciseProgress() {
-  return useApiMutation((data: any) => apiService.createExerciseProgress(data));
+  return useApiMutation((data) => apiService.createExerciseProgress(data));
 }
 
 export function useUpdateProfile() {
-  return useApiMutation((data: any) => apiService.updateProfile(data));
+  return useApiMutation((data) => apiService.updateProfile(data));
 }
 
 export function useSendMessage() {
-  return useApiMutation(({ conversationId, message }: { conversationId: string; message: string }) => 
+  return useApiMutation(({ conversationId, message }) => 
     apiService.sendMessage(conversationId, message)
   );
 }
 
 export function useMarkNotificationAsRead() {
-  return useApiMutation((id: string) => apiService.markNotificationAsRead(id));
+  return useApiMutation((id) => apiService.markNotificationAsRead(id));
 }
 
 export function useQuickAction() {
-  return useApiMutation(({ action, data }: { action: string; data?: any }) => 
+  return useApiMutation(({ action, data }) => 
     apiService.quickAction(action, data)
   );
 }

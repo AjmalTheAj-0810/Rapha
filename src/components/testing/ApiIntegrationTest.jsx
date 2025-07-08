@@ -1,19 +1,12 @@
 import React, { useState } from 'react';
 import { CheckCircle, XCircle, Loader, RefreshCw } from 'lucide-react';
-import apiService from '../../services/api';
+import apiService from '../../services/api.js';
 
-interface TestResult {
-  name: string;
-  status: 'pending' | 'success' | 'error';
-  message?: string;
-  data?: any;
-}
-
-const ApiIntegrationTest: React.FC = () => {
-  const [tests, setTests] = useState<TestResult[]>([]);
+const ApiIntegrationTest = () => {
+  const [tests, setTests] = useState([]);
   const [isRunning, setIsRunning] = useState(false);
 
-  const updateTest = (name: string, status: 'pending' | 'success' | 'error', message?: string, data?: any) => {
+  const updateTest = (name, status, message, data) => {
     setTests(prev => {
       const existing = prev.find(t => t.name === name);
       if (existing) {
@@ -80,7 +73,7 @@ const ApiIntegrationTest: React.FC = () => {
       try {
         const result = await testCase.test();
         updateTest(testCase.name, 'success', 'API call successful', result);
-      } catch (error: any) {
+      } catch (error) {
         updateTest(testCase.name, 'error', error.message || 'API call failed');
       }
       
@@ -91,7 +84,7 @@ const ApiIntegrationTest: React.FC = () => {
     setIsRunning(false);
   };
 
-  const getStatusIcon = (status: 'pending' | 'success' | 'error') => {
+  const getStatusIcon = (status) => {
     switch (status) {
       case 'pending':
         return <Loader className="h-4 w-4 animate-spin text-blue-500" />;
@@ -102,7 +95,7 @@ const ApiIntegrationTest: React.FC = () => {
     }
   };
 
-  const getStatusColor = (status: 'pending' | 'success' | 'error') => {
+  const getStatusColor = (status) => {
     switch (status) {
       case 'pending':
         return 'border-blue-200 bg-blue-50';
