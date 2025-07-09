@@ -13,7 +13,7 @@ const RegisterForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [showValidation, setShowValidation] = useState(false);
-  const { login } = useAuth();
+  const { setTempRegistrationData } = useAuth();
   const navigate = useNavigate();
 
   // Password validation function
@@ -74,8 +74,12 @@ const RegisterForm = () => {
       return;
     }
     
-    // Set user data in context for the personal info form
-    login({ email: formData.email, role: formData.role });
+    // Set temporary registration data for the personal info form
+    setTempRegistrationData({
+      email: formData.email,
+      password: formData.password,
+      role: formData.role
+    });
     
     // Navigate to personal information form
     navigate('/personal-info');

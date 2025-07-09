@@ -13,10 +13,17 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 const PersonalInformation = () => {
-  const { user } = useAuth();
+  const { user, completeRegistration, registrationData } = useAuth();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
+
+  // Redirect to register if no registration data
+  React.useEffect(() => {
+    if (!registrationData && !user?.role) {
+      navigate('/register');
+    }
+  }, [registrationData, user, navigate]);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -125,7 +132,7 @@ const PersonalInformation = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!validateForm()) {
@@ -139,13 +146,34 @@ const PersonalInformation = () => {
       return;
     }
     
-    // Simulate form submission and redirect to appropriate dashboard
-    console.log('Personal information submitted:', formData);
-    
-    if (user?.role === 'patient') {
-      navigate('/patient-dashboard');
-    } else if (user?.role === 'physiotherapist') {
-      navigate('/physio-dashboard');
+    try {
+      // Complete registration with personal information
+      const userData = await completeRegistration(formData);
+      
+      // If physiotherapist and has certificate, upload it
+      if (userData.user_type === 'physiotherapist' && formData.certificate) {
+        try {
+          // Upload certificate after registration
+          const formDataUpload = new FormData();
+          formDataUpload.append('certificate', formData.certificate);
+          
+          // You would need to implement this API call
+          // await apiService.uploadPhysiotherapistCertificate(formDataUpload);
+        } catch (uploadError) {
+          console.warn('Certificate upload failed:', uploadError);
+          // Don't block registration for certificate upload failure
+        }
+      }
+      
+      // Redirect to appropriate dashboard based on user role
+      if (userData.user_type === 'patient') {
+        navigate('/patient-dashboard');
+      } else if (userData.user_type === 'physiotherapist') {
+        navigate('/physio-dashboard');
+      }
+    } catch (error) {
+      console.error('Registration failed:', error);
+      setErrors({ submit: error.message || 'Registration failed. Please try again.' });
     }
   };
 
@@ -444,6 +472,13 @@ const PersonalInformation = () => {
                   {errors.agreeToTerms && <p className="mt-1 text-sm text-red-200">{errors.agreeToTerms}</p>}
                 </div>
               </div>
+
+              {/* Submit Error */}
+              {errors.submit && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl">
+                  <p className="text-sm">{errors.submit}</p>
+                </div>
+              )}
 
               {/* Submit Button */}
               <button

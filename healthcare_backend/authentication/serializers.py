@@ -89,7 +89,7 @@ class PhysiotherapistProfileSerializer(serializers.ModelSerializer):
             'id', 'user', 'license_number', 'specializations', 'specialization_display',
             'years_of_experience', 'education', 'certifications', 'consultation_fee',
             'is_available', 'bio', 'languages_spoken', 'clinic_address', 'working_hours',
-            'rating', 'total_reviews',
+            'rating', 'total_reviews', 'certificate',
             'created_at', 'updated_at'
         ]
         read_only_fields = ['rating', 'total_reviews', 'created_at', 'updated_at']

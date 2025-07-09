@@ -282,6 +282,12 @@ class PhysiotherapistProfile(models.Model):
         default=0,
         help_text="Total number of reviews"
     )
+    certificate = models.FileField(
+        upload_to='certificates/',
+        blank=True,
+        null=True,
+        help_text="Professional certificate or license document"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     

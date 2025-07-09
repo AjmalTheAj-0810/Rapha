@@ -16,6 +16,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [registrationData, setRegistrationData] = useState(null);
 
   // Check if user is already authenticated on app load
   useEffect(() => {
@@ -68,6 +69,62 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Set temporary registration data for multi-step registration
+  const setTempRegistrationData = (data) => {
+    setRegistrationData(data);
+    // Also set temporary user data for UI purposes
+    setUser({ ...data, role: data.role });
+  };
+
+  // Complete registration with personal information
+  const completeRegistration = async (personalInfo) => {
+    try {
+      setLoading(true);
+      
+      if (!registrationData) {
+        throw new Error('Registration data not found');
+      }
+
+      // Combine registration data with personal information
+      const completeUserData = {
+        username: registrationData.email, // Use email as username
+        email: registrationData.email,
+        password: registrationData.password,
+        user_type: registrationData.role,
+        first_name: personalInfo.firstName,
+        last_name: personalInfo.lastName,
+        phone_number: personalInfo.phoneNumber,
+        date_of_birth: personalInfo.dateOfBirth,
+        address: `${personalInfo.address}, ${personalInfo.city}, ${personalInfo.state} ${personalInfo.zip}, ${personalInfo.country}`,
+      };
+
+      const response = await apiService.register(completeUserData);
+      
+      if (response.token) {
+        apiService.setToken(response.token);
+        
+        // Get user data after successful registration
+        const userData = await apiService.getCurrentUser();
+        setUser(userData);
+        setIsAuthenticated(true);
+        
+        // Store user data in localStorage
+        localStorage.setItem(config.auth.userStorageKey, JSON.stringify(userData));
+        
+        // Clear registration data
+        setRegistrationData(null);
+        
+        log.info('User registered successfully');
+        return userData;
+      }
+    } catch (error) {
+      log.error('Registration failed:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const register = async (userData) => {
     try {
       setLoading(true);
@@ -98,9 +155,12 @@ export const AuthProvider = ({ children }) => {
     user,
     isAuthenticated,
     loading,
+    registrationData,
     login,
     register,
     logout,
+    setTempRegistrationData,
+    completeRegistration,
   };
 
   return (
