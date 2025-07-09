@@ -103,8 +103,27 @@ export const AuthProvider = ({ children }) => {
       if (response.token) {
         apiService.setToken(response.token);
         
-        // Get user data after successful registration
-        const userData = await apiService.getCurrentUser();
+        // Use user data from registration response or get from API
+        let userData = response.user;
+        if (!userData) {
+          try {
+            userData = await apiService.getCurrentUser();
+          } catch (error) {
+            // If getCurrentUser fails, create user data from response
+            userData = {
+              id: response.id || 1,
+              username: completeUserData.username,
+              email: completeUserData.email,
+              user_type: completeUserData.user_type,
+              first_name: completeUserData.first_name,
+              last_name: completeUserData.last_name,
+              phone_number: completeUserData.phone_number,
+              date_of_birth: completeUserData.date_of_birth,
+              address: completeUserData.address,
+            };
+          }
+        }
+        
         setUser(userData);
         setIsAuthenticated(true);
         
