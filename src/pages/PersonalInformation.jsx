@@ -177,8 +177,10 @@ const PersonalInformation = () => {
     }
   };
 
-  const isPhysiotherapist = user?.role === 'physiotherapist';
-  const isPatient = user?.role === 'patient';
+  // Check role from registration data or user object
+  const userRole = registrationData?.role || user?.role || user?.user_type;
+  const isPhysiotherapist = userRole === 'physiotherapist';
+  const isPatient = userRole === 'patient';
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-400 via-cyan-400 to-blue-500 p-4">
@@ -187,7 +189,7 @@ const PersonalInformation = () => {
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold text-white mb-2">Personal Information</h2>
             <p className="text-white">
-              Complete your {user?.role === 'patient' ? 'patient' : 'physiotherapist'} profile to get started
+              Complete your {isPatient ? 'patient' : 'physiotherapist'} profile to get started
             </p>
           </div>
 

@@ -236,7 +236,7 @@ class ApiService {
     } catch (error) {
       // Fallback to token auth endpoint
       try {
-        const tokenResponse = await fetch(`${this.baseURL}-token-auth/`, {
+        const tokenResponse = await fetch(`${this.baseURL}/../api-token-auth/`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

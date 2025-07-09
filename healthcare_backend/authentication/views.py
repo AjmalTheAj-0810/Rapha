@@ -37,9 +37,20 @@ class LoginView(APIView):
     
     def post(self, request):
         username = request.data.get('username')
+        email = request.data.get('email')
         password = request.data.get('password')
         
-        user = authenticate(username=username, password=password)
+        # Try to authenticate with username first, then email
+        user = None
+        if username:
+            user = authenticate(username=username, password=password)
+        elif email:
+            # Try to find user by email and authenticate with username
+            try:
+                user_obj = User.objects.get(email=email)
+                user = authenticate(username=user_obj.username, password=password)
+            except User.DoesNotExist:
+                pass
         
         if user:
             login(request, user)
