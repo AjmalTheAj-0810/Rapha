@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
+import { NotificationProvider } from './context/NotificationContext.jsx';
 import PrivateRoute from './routes/PrivateRoute';
 import RoleBasedRedirect from './routes/RoleBasedRedirect';
 
@@ -35,6 +36,10 @@ import EnhancedAnalytics from './pages/EnhancedAnalytics.jsx';
 import Settings from './pages/Settings.jsx';
 import Documentation from './pages/Documentation.jsx';
 import ApiIntegrationTest from './components/testing/ApiIntegrationTest.jsx';
+
+// Dynamic Pages
+import DynamicDashboard from './pages/DynamicDashboard.jsx';
+import DynamicBooking from './components/appointments/DynamicBooking.jsx';
 
 const LoadingSpinner = () => (
   <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-400 via-cyan-400 to-blue-500">
@@ -165,6 +170,18 @@ const AppContent = () => {
               </PrivateRoute>
             } />
             
+            <Route path="/dynamic-dashboard" element={
+              <PrivateRoute>
+                <DynamicDashboard />
+              </PrivateRoute>
+            } />
+            
+            <Route path="/dynamic-booking" element={
+              <PrivateRoute>
+                <DynamicBooking />
+              </PrivateRoute>
+            } />
+            
             {/* Redirect routes */}
             <Route path="/" element={<RoleBasedRedirect />} />
             <Route path="*" element={<Navigate to="/login" replace />} />
@@ -177,7 +194,9 @@ const AppContent = () => {
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <NotificationProvider>
+        <AppContent />
+      </NotificationProvider>
     </AuthProvider>
   );
 }
