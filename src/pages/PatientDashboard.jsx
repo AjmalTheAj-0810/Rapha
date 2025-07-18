@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, Lightbulb, Calendar, Flame, Clock, Smile, Activity, Users, CalendarDays, AlertCircle, RefreshCw } from 'lucide-react';
+import { CheckCircle, Lightbulb, Calendar, Flame, Clock, Smile, Activity, Users, CalendarDays, AlertCircle, RefreshCw, Bell } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../components/dashboard/Navbar';
+import { useNotifications } from '../context/NotificationContext';
+import LiveSearch from '../components/search/LiveSearch';
+import DynamicChat from '../components/chat/DynamicChat';
 import StatCard from '../components/dashboard/StatCard';
 import RadialProgressChart from '../components/charts/RadialProgressChart';
 import StreakTracker from '../components/dashboard/StreakTracker';
@@ -20,7 +24,6 @@ import {
   useExerciseStreaks,
   useExerciseProgressStats,
   useTodaysExercises,
-  useNotifications,
   useCurrentUser
 } from '../hooks/useApi';
 
@@ -33,8 +36,13 @@ const PatientDashboard = () => {
   const { data: exerciseStreaks, loading: streaksLoading } = useExerciseStreaks();
   const { data: progressStats, loading: progressLoading } = useExerciseProgressStats();
   const { data: todaysExercises, loading: todaysLoading } = useTodaysExercises();
-  const { data: notifications, loading: notificationsLoading } = useNotifications({ is_read: false });
+  // const { data: notifications, loading: notificationsLoading } = useNotifications({ is_read: false });
   const { data: currentUser } = useCurrentUser();
+
+  // Dynamic features state
+  const { addNotification } = useNotifications();
+  const [showChat, setShowChat] = useState(false);
+  const [showQuickActions, setShowQuickActions] = useState(false);
 
   // Loading and error states
   const [refreshing, setRefreshing] = useState(false);
@@ -109,21 +117,74 @@ const PatientDashboard = () => {
       <Navbar />
       
       <div className="p-6">
-        <div className="mb-6 flex justify-between items-center">
+        <div className="mb-6 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Welcome back, {currentUser?.first_name || 'Patient'}!
-            </h1>
+            <motion.h1 
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-2xl font-bold text-gray-900 mb-2"
+            >
+              Welcome back, {currentUser?.first_name || 'Patient'}! 👋
+            </motion.h1>
             <p className="text-gray-600">Track your recovery and manage your health journey</p>
           </div>
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-          >
-            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
+          
+          <div className="flex items-center gap-4">
+            {/* Live Search */}
+            <LiveSearch 
+              placeholder="Search exercises, appointments..."
+              onSelect={(item) => {
+                addNotification({
+                  type: 'info',
+                  title: 'Search Result',
+                  message: `Selected: ${item.title}`
+                });
+              }}
+            />
+            
+            {/* Quick Actions */}
+            <motion.button
+              onClick={() => setShowQuickActions(!showQuickActions)}
+              className="relative p-2 bg-purple-600 text-white rounded-full hover:bg-purple-700 transition-colors"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Activity className="w-5 h-5" />
+              {showQuickActions && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  className="absolute right-0 top-12 bg-white rounded-lg shadow-lg p-4 min-w-48 z-50"
+                >
+                  <div className="space-y-2">
+                    <button className="w-full text-left p-2 hover:bg-gray-100 rounded">Start Exercise</button>
+                    <button className="w-full text-left p-2 hover:bg-gray-100 rounded">Log Symptoms</button>
+                    <button className="w-full text-left p-2 hover:bg-gray-100 rounded">Book Appointment</button>
+                  </div>
+                </motion.div>
+              )}
+            </motion.button>
+            
+            {/* Chat Toggle */}
+            <motion.button
+              onClick={() => setShowChat(!showChat)}
+              className="relative p-2 bg-green-600 text-white rounded-full hover:bg-green-700 transition-colors"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Users className="w-5 h-5" />
+              <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
+            </motion.button>
+            
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
         </div>
 
         {/* Error State */}
@@ -271,6 +332,43 @@ const PatientDashboard = () => {
           <AIInsights insights={patientInsights} isPatient={true} />
         </div>
       </div>
+
+      {/* Dynamic Chat Overlay */}
+      <AnimatePresence>
+        {showChat && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+            onClick={() => setShowChat(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              className="w-full max-w-4xl h-96 bg-white rounded-lg shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <DynamicChat />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Floating Action Button for Dynamic Dashboard */}
+      <Link to="/dynamic-dashboard">
+        <motion.button
+          className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full shadow-lg flex items-center justify-center z-40"
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ delay: 1 }}
+        >
+          <Activity className="w-6 h-6" />
+        </motion.button>
+      </Link>
     </div>
   );
 };
